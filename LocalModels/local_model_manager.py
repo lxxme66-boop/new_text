@@ -14,6 +14,13 @@ try:
 except ImportError:
     VLLM_AVAILABLE = False
 
+# 导入vLLM HTTP客户端
+try:
+    from .vllm_http_client import VLLMHTTPClient, create_vllm_http_client
+    VLLM_HTTP_AVAILABLE = True
+except ImportError:
+    VLLM_HTTP_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -57,6 +64,11 @@ class LocalModelManager:
             self.models[backend] = client
             return client
             
+        elif backend == 'vllm_http' and VLLM_HTTP_AVAILABLE:
+            client = create_vllm_http_client(self.config.get('vllm_http', {}))
+            self.models[backend] = client
+            return client
+            
         else:
             raise ValueError(f"Unsupported backend: {backend}")
     
@@ -87,6 +99,8 @@ class LocalModelManager:
         backends = ['ollama']
         if VLLM_AVAILABLE:
             backends.append('vllm')
+        if VLLM_HTTP_AVAILABLE:
+            backends.append('vllm_http')
         return backends
 
 

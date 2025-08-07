@@ -128,12 +128,21 @@ async def input_text_process(text_content, source_file, chunk_index=0, total_chu
     """
     # Check if we should use local models
     use_local = False
+    use_vllm_http = False
     local_model_manager = None
     
     if config and LOCAL_MODEL_SUPPORT:
         use_local = config.get('api', {}).get('use_local_models', False)
-        if use_local:
+        use_vllm_http = config.get('api', {}).get('use_vllm_http', False)
+        
+        if use_local or use_vllm_http:
             try:
+                # 如果使用vLLM HTTP，确保配置正确
+                if use_vllm_http:
+                    local_config = config.get('models', {}).get('local_models', {})
+                    local_config['default_backend'] = 'vllm_http'
+                    config['models']['local_models'] = local_config
+                
                 local_model_manager = LocalModelManager(config)
                 if not local_model_manager.is_available():
                     logger.warning("Local models enabled but not available, falling back to API")
