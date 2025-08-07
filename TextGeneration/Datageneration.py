@@ -146,11 +146,21 @@ async def input_text_process(text_content, source_file, chunk_index=0, total_chu
         user_prompt = user_prompts[prompt_index]
         
         # Format the prompt with the text content
-        formatted_prompt = user_prompt.format(
-            text_content=text_content,
-            source_file=source_file,
-            chunk_info=f"(Chunk {chunk_index + 1}/{total_chunks})" if total_chunks > 1 else ""
-        )
+        # Check if the prompt expects markdown_content or text_content
+        if '{markdown_content}' in user_prompt:
+            formatted_prompt = user_prompt.format(
+                markdown_content=text_content,
+                source_file=source_file,
+                chunk_info=f"(Chunk {chunk_index + 1}/{total_chunks})" if total_chunks > 1 else ""
+            )
+        elif '{text_content}' in user_prompt:
+            formatted_prompt = user_prompt.format(
+                text_content=text_content,
+                source_file=source_file,
+                chunk_info=f"(Chunk {chunk_index + 1}/{total_chunks})" if total_chunks > 1 else ""
+            )
+        else:
+            formatted_prompt = user_prompt
         
         # Generate response using appropriate backend
         if use_local and local_model_manager:
