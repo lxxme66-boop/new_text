@@ -1,0 +1,16 @@
+{
+  "file_path": "data/qa_results/results_343.json",
+  "total_qa_pairs": 4,
+  "passed_qa_pairs": 0,
+  "pass_rate": 0.0,
+  "quality_threshold": 0.7,
+  "meets_threshold": false,
+  "statistics": {
+    "avg_question_length": 46.0,
+    "avg_answer_length": 87.0,
+    "question_types_distribution": {
+      "factual": 4
+    }
+  },
+  "verification_timestamp": "2025-08-06T10:13:07.774458"
+}

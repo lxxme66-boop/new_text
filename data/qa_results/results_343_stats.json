@@ -1,0 +1,20 @@
+{
+    "total_qa_pairs": 4,
+    "question_types": {
+        "factual": 4,
+        "comparison": 0,
+        "reasoning": 0,
+        "open_ended": 0
+    },
+    "source_files": {
+        "test.txt": 4
+    },
+    "average_answer_length": 87.0,
+    "average_question_length": 46.0,
+    "question_type_percentages": {
+        "factual": "100.0%",
+        "comparison": "0.0%",
+        "reasoning": "0.0%",
+        "open_ended": "0.0%"
+    }
+}

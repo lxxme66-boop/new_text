@@ -1,0 +1,138 @@
+[
+    {
+        "qa_pairs": [
+            {
+                "question": "What is the main topic discussed in this text?",
+                "answer": "The text discusses semiconductor technology and its applications in modern electronics.",
+                "question_type": "factual",
+                "difficulty": "intermediate",
+                "reasoning": "Based on the content analysis of the provided text."
+            }
+        ],
+        "key_concepts": [
+            "semiconductor",
+            "electronics",
+            "technology"
+        ],
+        "technical_details": {
+            "materials": [
+                "silicon",
+                "germanium"
+            ],
+            "parameters": [
+                "conductivity",
+                "band gap"
+            ],
+            "methods": [
+                "doping",
+                "lithography"
+            ]
+        },
+        "main_findings": [
+            "Semiconductors are fundamental to modern electronics"
+        ],
+        "source_file": "test.txt"
+    },
+    {
+        "qa_pairs": [
+            {
+                "question": "What is the main topic discussed in this text?",
+                "answer": "The text discusses semiconductor technology and its applications in modern electronics.",
+                "question_type": "factual",
+                "difficulty": "intermediate",
+                "reasoning": "Based on the content analysis of the provided text."
+            }
+        ],
+        "key_concepts": [
+            "semiconductor",
+            "electronics",
+            "technology"
+        ],
+        "technical_details": {
+            "materials": [
+                "silicon",
+                "germanium"
+            ],
+            "parameters": [
+                "conductivity",
+                "band gap"
+            ],
+            "methods": [
+                "doping",
+                "lithography"
+            ]
+        },
+        "main_findings": [
+            "Semiconductors are fundamental to modern electronics"
+        ],
+        "source_file": "test.txt"
+    },
+    {
+        "qa_pairs": [
+            {
+                "question": "What is the main topic discussed in this text?",
+                "answer": "The text discusses semiconductor technology and its applications in modern electronics.",
+                "question_type": "factual",
+                "difficulty": "intermediate",
+                "reasoning": "Based on the content analysis of the provided text."
+            }
+        ],
+        "key_concepts": [
+            "semiconductor",
+            "electronics",
+            "technology"
+        ],
+        "technical_details": {
+            "materials": [
+                "silicon",
+                "germanium"
+            ],
+            "parameters": [
+                "conductivity",
+                "band gap"
+            ],
+            "methods": [
+                "doping",
+                "lithography"
+            ]
+        },
+        "main_findings": [
+            "Semiconductors are fundamental to modern electronics"
+        ],
+        "source_file": "test.txt"
+    },
+    {
+        "qa_pairs": [
+            {
+                "question": "What is the main topic discussed in this text?",
+                "answer": "The text discusses semiconductor technology and its applications in modern electronics.",
+                "question_type": "factual",
+                "difficulty": "intermediate",
+                "reasoning": "Based on the content analysis of the provided text."
+            }
+        ],
+        "key_concepts": [
+            "semiconductor",
+            "electronics",
+            "technology"
+        ],
+        "technical_details": {
+            "materials": [
+                "silicon",
+                "germanium"
+            ],
+            "parameters": [
+                "conductivity",
+                "band gap"
+            ],
+            "methods": [
+                "doping",
+                "lithography"
+            ]
+        },
+        "main_findings": [
+            "Semiconductors are fundamental to modern electronics"
+        ],
+        "source_file": "test.txt"
+    }
+]
