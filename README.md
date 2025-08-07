@@ -48,7 +48,44 @@
 
 ## 处理流程
 
-### 完整处理流程
+### 通用流程（7步骤）vs 半导体专用流程（3步骤）
+
+系统提供两种处理流程：
+
+#### 1. 通用QA生成流程（7步骤）
+
+完整的通用流程包含以下7个步骤：
+
+1. **文本预处理与过滤** (`text_processor.py`)
+2. **文本召回与批量推理** (`text_main_batch_inference_enhanced.py`)
+3. **数据清洗** (`clean_text_data.py`)
+4. **QA生成** (`text_qa_generation_enhanced.py`)
+5. **质量检查** (`text_qa_generation_enhanced.py --check_task`)
+6. **数据增强** (`argument_data.py`)
+7. **最终输出整理**
+
+#### 2. 半导体专用流程（3步骤）
+
+针对半导体领域优化的精简流程：
+
+1. **文本预处理** (`text_processor.py`)
+2. **核心QA生成** (`semiconductor_qa_generator.py`)
+3. **数据增强与重写** (`argument_data.py`)
+
+#### 流程对比
+
+| 步骤 | 通用流程 | 半导体专用流程 | 说明 |
+|------|----------|----------------|------|
+| 1 | 文本预处理与过滤 | 文本预处理 | 半导体流程集成了过滤功能 |
+| 2 | 文本召回与批量推理 | - | 半导体流程内置在QA生成中 |
+| 3 | 数据清洗 | - | 半导体流程在预处理中完成 |
+| 4 | QA生成 | 核心QA生成 | 半导体流程包含质量评估 |
+| 5 | 质量检查 | - | 半导体流程内置质量检查 |
+| 6 | 数据增强 | 数据增强与重写 | 功能相同 |
+| 7 | 最终输出整理 | - | 半导体流程自动整理输出 |
+
+### 完整处理流程图
+
 ```
 A[run_pipeline.py/运行脚本] --> B[text_processor.py]
 B --> C[enhanced_file_processor.py]
@@ -102,50 +139,142 @@ pip install vllm
 
 ## 使用方法
 
-### 1. 推荐方式 - 运行完整的半导体QA生成流程
+### 1. 半导体专用流程（推荐）
+
+#### 一键运行
 
 ```bash
+# 使用默认参数运行（精简3步骤模式）
 python run_semiconductor_qa.py --input-dir data/texts --output-dir data/qa_results
-```
 
-这将按照正确的流程依次执行：
-1. text_processor.py - 文本预处理
-2. semiconductor_qa_generator.py - 核心QA生成
-3. argument_data.py - 数据增强与重写
+# 启用完整7步骤模式
+python run_semiconductor_qa.py --input-dir data/texts --output-dir data/qa_results --enable-full-steps
 
-### 2. 旧版方式 - 使用增强版QA生成（当前shell脚本使用的方式）
-
-```bash
-# 运行完整流程
-bash run_full_pipeline.sh
-
-# 或直接运行Python脚本
-python text_qa_generation_enhanced.py --file_path data/output/total_response.json
-```
-
-### 3. 分步执行
-
-```bash
-# 步骤1: 文本预处理
-python text_processor.py --input data/texts --output data/output
-
-# 步骤2: QA生成
-python semiconductor_qa_generator.py
-
-# 步骤3: 数据增强
-python argument_data.py --input data/qa_results/qa_generated.json
-```
-
-### 4. 自定义参数运行
-
-```bash
+# 自定义参数运行
 python run_semiconductor_qa.py \
     --input-dir /path/to/texts \
     --output-dir /path/to/output \
     --model qwq_32 \
     --batch-size 32 \
-    --gpu-devices "0,1,2,3"
+    --gpu-devices "0,1,2,3" \
+    --enable-full-steps  # 可选：启用完整7步骤
 ```
+
+**注意**：
+- 默认运行精简3步骤模式（更快速）
+- 使用 `--enable-full-steps` 参数启用完整7步骤模式（更全面）
+- 完整模式包含：文本召回、数据清洗、独立质量检查和详细统计报告
+
+#### 分步运行
+
+```bash
+# 步骤1: 文本预处理
+python text_processor.py --input data/texts --output data/output
+
+# 步骤2: 核心QA生成（包含质量评估）
+python -c "
+import asyncio
+from semiconductor_qa_generator import run_semiconductor_qa_generation
+
+async def main():
+    results = await run_semiconductor_qa_generation(
+        raw_folders=['data/output/preprocessed_texts.json'],
+        save_paths=['data/qa_results/qa_generated.json'],
+        model_name='qwq_32',
+        batch_size=32,
+        gpu_devices='4,5,6,7'
+    )
+    print(f'生成了 {len(results)} 个QA对')
+
+asyncio.run(main())
+"
+
+# 步骤3: 数据增强与重写
+python -c "
+import asyncio
+import json
+from argument_data import ArgumentDataProcessor
+
+async def main():
+    processor = ArgumentDataProcessor()
+    with open('data/qa_results/qa_generated.json', 'r', encoding='utf-8') as f:
+        qa_data = json.load(f)
+    enhanced_data = await processor.enhance_qa_data(qa_data)
+    with open('data/qa_results/final_qa_dataset.json', 'w', encoding='utf-8') as f:
+        json.dump(enhanced_data, f, ensure_ascii=False, indent=2)
+    print(f'增强完成，最终数据集包含 {len(enhanced_data)} 个QA对')
+
+asyncio.run(main())
+"
+```
+
+### 2. 通用流程（完整7步骤）
+
+#### 一键运行
+
+```bash
+# 运行完整流程脚本
+bash run_full_pipeline.sh
+
+# 或使用Python统一入口
+python run_pipeline.py --input_path data/texts --domain semiconductor
+```
+
+#### 分步运行
+
+```bash
+# 步骤1: 文本预处理与过滤
+python text_processor.py \
+    --input data/texts \
+    --output data/output \
+    --batch-size 100 \
+    --index 9
+
+# 步骤2: 文本召回与批量推理
+python text_main_batch_inference_enhanced.py \
+    --txt_path data/texts \
+    --storage_folder data/output \
+    --parallel_batch_size 100 \
+    --selected_task_number 1000 \
+    --index 43
+
+# 步骤3: 数据清洗
+python clean_text_data.py \
+    --input_file data/output/total_response.pkl \
+    --output_file data/output
+
+# 步骤4: QA生成
+python text_qa_generation_enhanced.py \
+    --file_path data/output/total_response.json \
+    --output_file data/qa_results \
+    --index 343 \
+    --pool_size 100 \
+    --enhanced_quality true
+
+# 步骤5: 质量检查
+python text_qa_generation_enhanced.py \
+    --check_task true \
+    --file_path data/qa_results/results_343.json \
+    --output_file data/qa_results \
+    --quality_threshold 0.7 \
+    --check_times 9
+
+# 步骤6: 数据增强（可选）
+python argument_data.py \
+    --input_file data/qa_results/results_343.json \
+    --output_file data/qa_results/enhanced_results.json \
+    --index 45
+
+# 步骤7: 最终输出整理
+# 复制并生成统计报告
+cp data/qa_results/results_343.json data/final_output/final_qa_pairs.json
+python generate_statistics.py --input data/final_output/final_qa_pairs.json
+```
+
+### 3. 选择建议
+
+- **半导体专用流程**：针对半导体领域优化，集成度高，运行效率更高，推荐用于半导体相关文档
+- **通用流程**：适用于各种领域，步骤可控性强，适合需要精细控制每个步骤的场景
 
 ## 配置说明
 
