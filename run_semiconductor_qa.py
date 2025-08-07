@@ -31,7 +31,24 @@ logger = logging.getLogger(__name__)
 # 导入各个模块
 from text_processor import TextProcessor
 from semiconductor_qa_generator import run_semiconductor_qa_generation
-from argument_data import ArgumentDataProcessor
+
+# 尝试导入argument_data模块
+try:
+    from argument_data import ArgumentDataProcessor
+    ARGUMENT_DATA_AVAILABLE = True
+except ImportError:
+    ARGUMENT_DATA_AVAILABLE = False
+    logger.warning("数据增强模块不可用（缺少volcenginesdkarkruntime）")
+    
+    # 创建一个mock类
+    class ArgumentDataProcessor:
+        """Mock ArgumentDataProcessor class"""
+        def __init__(self):
+            pass
+        
+        async def process_qa_data(self, *args, **kwargs):
+            logger.warning("数据增强功能不可用，跳过此步骤")
+            return args[0] if args else []
 
 # 导入新增的模块
 try:
@@ -346,8 +363,32 @@ def main():
                         help="GPU设备ID")
     parser.add_argument("--enable-full-steps", action="store_true",
                         help="启用完整7步骤流程（默认为精简3步骤）")
+    parser.add_argument("--config", type=str, default=None,
+                        help="配置文件路径（可选，用于vLLM HTTP等配置）")
     
     args = parser.parse_args()
+    
+    # 如果提供了配置文件，加载并应用配置
+    if args.config:
+        try:
+            with open(args.config, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            logger.info(f"加载配置文件: {args.config}")
+            
+            # 设置环境变量以支持vLLM HTTP
+            if config.get('api', {}).get('use_vllm_http'):
+                os.environ['USE_VLLM_HTTP'] = 'true'
+                os.environ['VLLM_SERVER_URL'] = config['api'].get('vllm_server_url', 'http://localhost:8000/v1')
+                os.environ['USE_LOCAL_MODELS'] = str(config['api'].get('use_local_models', True)).lower()
+                logger.info(f"启用vLLM HTTP模式，服务器地址: {os.environ['VLLM_SERVER_URL']}")
+            
+            # 从配置文件中获取处理参数（如果命令行没有指定，则使用配置文件的值）
+            if args.batch_size == 32 and 'processing' in config:  # 使用默认值时才从配置文件读取
+                args.batch_size = config['processing'].get('batch_size', args.batch_size)
+            
+        except Exception as e:
+            logger.error(f"加载配置文件失败: {e}")
+            sys.exit(1)
     
     # 运行异步流程
     asyncio.run(run_complete_pipeline(

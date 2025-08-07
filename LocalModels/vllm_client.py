@@ -11,6 +11,9 @@ import aiohttp
 import json
 from tqdm import tqdm
 
+# 设置日志
+logger = logging.getLogger(__name__)
+
 # 尝试导入vllm
 try:
     from vllm import LLM, SamplingParams
@@ -37,8 +40,6 @@ try:
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
     print("Warning: transformers not installed")
-
-logger = logging.getLogger(__name__)
 
 
 class VLLMClient:
