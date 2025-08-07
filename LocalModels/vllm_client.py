@@ -1,22 +1,36 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 """
-vLLM客户端支持
-提供vLLM模型服务的接口
+vLLM客户端 - 高性能本地模型推理
+支持批量处理和异步调用
 """
-import os
+
 import asyncio
 import logging
-from typing import Dict, List, Optional, Any, Union
+from typing import List, Dict, Any, Optional, Union
+from pathlib import Path
+import time
 import json
-import aiohttp
+
+logger = logging.getLogger(__name__)
 
 # 尝试导入vLLM
 try:
     from vllm import LLM, SamplingParams
     VLLM_AVAILABLE = True
 except ImportError:
+    logger.warning("vLLM not installed. Install with: pip install vllm")
     VLLM_AVAILABLE = False
-    print("Warning: vLLM not installed. Install with: pip install vllm")
+    
+    # 创建模拟类
+    class LLM:
+        def __init__(self, **kwargs):
+            pass
+        def generate(self, prompts, sampling_params, **kwargs):
+            return []
+    
+    class SamplingParams:
+        def __init__(self, **kwargs):
+            pass
 
 # 尝试导入transformers
 try:
@@ -25,8 +39,6 @@ try:
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
     print("Warning: transformers not installed")
-
-logger = logging.getLogger(__name__)
 
 
 class VLLMClient:
