@@ -1,0 +1,144 @@
+{
+  "system_info": {
+    "name": "智能文本QA生成系统 - 本地模型版",
+    "version": "3.1.0",
+    "description": "专注于文本处理的智能问答生成系统，支持四种问题类型",
+    "last_updated": "2024-12-20",
+    "features": [
+      "文本召回与检索",
+      "智能QA生成（四种类型）",
+      "增强质量控制",
+      "本地大模型支持",
+      "专业领域定制"
+    ]
+  },
+  
+  "api": {
+    "use_local_models": true,
+    "local_model_priority": ["vllm", "transformers"],
+    "timeout": 600,
+    "max_retries": 3,
+    "retry_delay": 1
+  },
+  
+  "models": {
+    "local_models": {
+      "vllm": {
+        "enabled": true,
+        "model_path": "/path/to/your/model",
+        "model_name": "Qwen-72B-Chat",
+        "tensor_parallel_size": 2,
+        "gpu_memory_utilization": 0.9,
+        "max_model_len": 8192,
+        "dtype": "float16",
+        "trust_remote_code": true,
+        "download_dir": "/workspace/models",
+        "port": 8000
+      },
+      "transformers": {
+        "enabled": false,
+        "model_name": "Qwen/Qwen-72B-Chat",
+        "device_map": "auto",
+        "torch_dtype": "float16",
+        "load_in_8bit": false,
+        "max_length": 4096
+      }
+    },
+    "generation_params": {
+      "temperature": 0.8,
+      "top_p": 0.9,
+      "max_tokens": 2048,
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0
+    }
+  },
+  
+  "question_generation": {
+    "question_types": {
+      "factual": {
+        "name": "事实型",
+        "ratio": 0.15,
+        "description": "获取指标、数值、性能参数等",
+        "prompt_index": 43
+      },
+      "comparison": {
+        "name": "比较型",
+        "ratio": 0.15,
+        "description": "比较不同材料、结构或方案等",
+        "prompt_index": 44
+      },
+      "reasoning": {
+        "name": "推理型",
+        "ratio": 0.50,
+        "description": "机制原理解释，探究原因",
+        "prompt_index": 45
+      },
+      "open_ended": {
+        "name": "开放型",
+        "ratio": 0.20,
+        "description": "优化建议，改进方法",
+        "prompt_index": 46
+      }
+    },
+    "batch_size": 50,
+    "max_concurrent": 10,
+    "domain_specific": {
+      "semiconductor": {
+        "enabled": true,
+        "keywords": ["IGZO", "TFT", "氧化物半导体", "迁移率", "阈值电压"]
+      },
+      "display": {
+        "enabled": true,
+        "keywords": ["OLED", "LCD", "背板", "像素", "驱动"]
+      }
+    }
+  },
+  
+  "processing": {
+    "batch_size": 100,
+    "max_concurrent": 20,
+    "chunk_size": 2000,
+    "chunk_overlap": 200,
+    "text_only": true,
+    "skip_multimodal": true
+  },
+  
+  "quality_control": {
+    "enabled": true,
+    "quality_threshold": 0.7,
+    "check_grammar": true,
+    "check_relevance": true,
+    "check_completeness": true,
+    "max_retries": 2
+  },
+  
+  "file_paths": {
+    "input": {
+      "text_dir": "data/texts"
+    },
+    "output": {
+      "base_dir": "data/output",
+      "retrieved_dir": "data/output/retrieved",
+      "qa_dir": "data/output/qa_results",
+      "quality_dir": "data/output/quality_checked",
+      "final_dir": "data/output/final"
+    },
+    "temp": {
+      "base_dir": "temp",
+      "cache_dir": "temp/cache"
+    }
+  },
+  
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "logs/pipeline.log"
+  },
+  
+  "gpu_config": {
+    "devices": [0, 1],
+    "memory_fraction": 0.9,
+    "allow_growth": true,
+    "per_process_gpu_memory_fraction": 0.45
+  }
+}
