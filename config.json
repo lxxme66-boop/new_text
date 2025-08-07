@@ -39,6 +39,15 @@
         "top_k": 40,
         "max_tokens": 4096,
         "stop_token_ids": [151329, 151336, 151338]
+      },
+      "vllm_http": {
+        "base_url": "http://localhost:8000/v1",
+        "api_key": "dummy-key",
+        "model_name": "qwen-vllm",
+        "temperature": 0.7,
+        "max_tokens": 2048,
+        "top_p": 0.95,
+        "timeout": 300
       }
     }
   },

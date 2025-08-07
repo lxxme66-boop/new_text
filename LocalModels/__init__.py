@@ -30,4 +30,17 @@ if VLLM_SUPPORT:
         'create_vllm_client',
     ])
 
+# 尝试导入vLLM HTTP客户端
+try:
+    from .vllm_http_client import VLLMHTTPClient, create_vllm_http_client
+    VLLM_HTTP_SUPPORT = True
+    __all__.extend([
+        'VLLMHTTPClient',
+        'create_vllm_http_client',
+    ])
+except ImportError:
+    VLLM_HTTP_SUPPORT = False
+    VLLMHTTPClient = None
+    create_vllm_http_client = None
+
 __version__ = '0.1.0'
