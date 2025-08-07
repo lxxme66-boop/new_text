@@ -1,10 +1,10 @@
 {
   "api": {
     "use_local_models": true,
-    "use_vllm_http": true,
+    "use_vllm_http": false,
     "vllm_server_url": "http://localhost:8000/v1",
     "api_key": "dummy-key",
-    "default_backend": "vllm_http"
+    "default_backend": "ollama"
   },
   "models": {
     "qa_generator_model": {
@@ -18,8 +18,8 @@
       "max_tokens": 512
     },
     "local_models": {
-      "default_backend": "vllm_http",
-      "local_model_priority": ["vllm_http", "ollama", "vllm"],
+      "default_backend": "ollama",
+      "local_model_priority": ["ollama", "vllm_http", "vllm"],
       "vllm_http": {
         "base_url": "http://localhost:8000/v1",
         "api_key": "dummy-key",
