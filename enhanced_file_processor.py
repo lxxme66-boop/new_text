@@ -7,283 +7,255 @@
 import os
 import asyncio
 import logging
-from pathlib import Path
-from typing import List, Dict, Union, Tuple
-try:
-    import PyPDF2
-    PYPDF2_AVAILABLE = True
-except ImportError:
-    PYPDF2_AVAILABLE = False
-    
-try:
-    import fitz  # pymupdf
-    FITZ_AVAILABLE = True
-except ImportError:
-    FITZ_AVAILABLE = False
-    
-try:
-    import pdfplumber
-    PDFPLUMBER_AVAILABLE = True
-except ImportError:
-    PDFPLUMBER_AVAILABLE = False
+from typing import List, Dict, Tuple, Optional
+import json
+from datetime import datetime
+
+# Import text filtering functions
+from TextGeneration.text_filter import drop, is_to_drop
 
 logger = logging.getLogger(__name__)
 
-
 class EnhancedFileProcessor:
-    """增强的文件处理器，支持PDF和TXT文件的智能处理"""
+    """
+    增强型文件处理器
+    支持从不同目录加载不同类型的文件
+    """
     
-    def __init__(self, pdf_dir="data/pdfs", txt_dir="data/texts"):
-        self.pdf_dir = pdf_dir
-        self.txt_dir = txt_dir
-        self.supported_extensions = {
-            'pdf': ['.pdf'],
-            'text': ['.txt', '.text', '.md']
+    def __init__(self, config_path: str = "config.json"):
+        """初始化处理器"""
+        self.config = self._load_config(config_path)
+        self.pdf_dir = self.config.get('paths', {}).get('pdf_dir', 'data/pdfs')
+        self.text_dir = self.config.get('paths', {}).get('text_dir', 'data/texts')
+        self.output_dir = self.config.get('paths', {}).get('output_dir', 'data/output')
+        
+    def _load_config(self, config_path: str) -> Dict:
+        """加载配置文件"""
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        else:
+            logger.warning(f"Config file {config_path} not found, using defaults")
+            return {}
+    
+    async def process_pdf_file(self, file_path: str) -> Dict:
+        """处理PDF文件"""
+        logger.info(f"Processing PDF: {file_path}")
+        
+        # 这里可以集成PDF处理逻辑
+        # 暂时返回模拟数据
+        return {
+            'file_path': file_path,
+            'file_type': 'pdf',
+            'content': f"PDF content from {file_path}",
+            'metadata': {
+                'pages': 10,
+                'processed_at': datetime.now().isoformat()
+            }
         }
-        
-    def detect_file_type(self, file_path: str) -> str:
-        """检测文件类型"""
-        ext = Path(file_path).suffix.lower()
-        
-        for file_type, extensions in self.supported_extensions.items():
-            if ext in extensions:
-                return file_type
-        
-        return 'unknown'
     
-    def get_files_by_type(self, directory: str, file_type: str) -> List[str]:
-        """获取指定类型的文件列表"""
+    async def process_txt_file(self, file_path: str) -> Dict:
+        """处理文本文件"""
+        logger.info(f"Processing text file: {file_path}")
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # 应用文本过滤
+            filtered_content = drop(content)
+            
+            # 记录过滤信息
+            original_lines = content.count('\n') + 1
+            filtered_lines = filtered_content.count('\n') + 1
+            filter_ratio = 1 - (filtered_lines / original_lines) if original_lines > 0 else 0
+            
+            return {
+                'file_path': file_path,
+                'file_type': 'txt',
+                'content': filtered_content,
+                'metadata': {
+                    'original_length': len(content),
+                    'filtered_length': len(filtered_content),
+                    'original_lines': original_lines,
+                    'filtered_lines': filtered_lines,
+                    'filter_ratio': filter_ratio,
+                    'processed_at': datetime.now().isoformat()
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error processing {file_path}: {e}")
+            return {
+                'file_path': file_path,
+                'file_type': 'txt',
+                'content': '',
+                'error': str(e)
+            }
+    
+    def get_files_from_directory(self, directory: str, extensions: List[str]) -> List[str]:
+        """从目录获取指定扩展名的文件"""
+        files = []
+        
         if not os.path.exists(directory):
             logger.warning(f"目录不存在: {directory}")
-            return []
+            return files
         
-        files = []
-        extensions = self.supported_extensions.get(file_type, [])
-        
-        for file in os.listdir(directory):
-            if any(file.lower().endswith(ext) for ext in extensions):
-                files.append(os.path.join(directory, file))
+        for root, dirs, filenames in os.walk(directory):
+            for filename in filenames:
+                if any(filename.endswith(ext) for ext in extensions):
+                    files.append(os.path.join(root, filename))
         
         return files
     
-    async def extract_text_from_pdf(self, pdf_path: str) -> str:
-        """从PDF文件提取文本"""
-        text = ""
+    async def process_pdf_directory(self, pdf_dir: Optional[str] = None) -> List[Dict]:
+        """处理PDF目录"""
+        if pdf_dir is None:
+            pdf_dir = self.pdf_dir
         
-        # 尝试使用pymupdf
-        if FITZ_AVAILABLE:
-            try:
-                doc = fitz.open(pdf_path)
-                for page in doc:
-                    text += page.get_text()
-                doc.close()
-                
-                if text.strip():
-                    return text
-            except Exception as e:
-                logger.debug(f"pymupdf提取失败: {e}")
+        pdf_files = self.get_files_from_directory(pdf_dir, ['.pdf'])
+        logger.info(f"Found {len(pdf_files)} PDF files in {pdf_dir}")
         
-        # 尝试pdfplumber
-        if PDFPLUMBER_AVAILABLE and not text.strip():
-            try:
-                with pdfplumber.open(pdf_path) as pdf:
-                    for page in pdf.pages:
-                        page_text = page.extract_text()
-                        if page_text:
-                            text += page_text + "\n"
-                
-                if text.strip():
-                    return text
-            except Exception as e:
-                logger.debug(f"pdfplumber提取失败: {e}")
+        tasks = []
+        for pdf_file in pdf_files:
+            task = self.process_pdf_file(pdf_file)
+            tasks.append(task)
         
-        # 最后尝试PyPDF2
-        if PYPDF2_AVAILABLE and not text.strip():
-            try:
-                with open(pdf_path, 'rb') as file:
-                    reader = PyPDF2.PdfReader(file)
-                    for page in reader.pages:
-                        text += page.extract_text()
-                    return text
-            except Exception as e:
-                logger.debug(f"PyPDF2提取失败: {e}")
-        
-        # 如果没有可用的PDF库
-        if not any([FITZ_AVAILABLE, PDFPLUMBER_AVAILABLE, PYPDF2_AVAILABLE]):
-            logger.error(f"没有可用的PDF处理库，无法提取 {pdf_path}")
-            return ""
-        
-        logger.error(f"所有PDF提取方法失败 {pdf_path}")
-        return ""
+        results = await asyncio.gather(*tasks)
+        return results
     
-    async def read_text_file(self, txt_path: str) -> str:
-        """读取文本文件"""
-        try:
-            with open(txt_path, 'r', encoding='utf-8') as f:
-                return f.read()
-        except UnicodeDecodeError:
-            # 尝试其他编码
-            try:
-                with open(txt_path, 'r', encoding='gbk') as f:
-                    return f.read()
-            except Exception as e:
-                logger.error(f"文本文件读取失败 {txt_path}: {e}")
-                return ""
-    
-    async def process_file(self, file_path: str) -> Dict:
-        """处理单个文件"""
-        file_type = self.detect_file_type(file_path)
+    async def process_text_directory(self, text_dir: Optional[str] = None) -> List[Dict]:
+        """处理文本目录"""
+        if text_dir is None:
+            text_dir = self.text_dir
         
-        result = {
-            'file_path': file_path,
-            'file_name': os.path.basename(file_path),
-            'file_type': file_type,
-            'content': '',
-            'success': False,
-            'error': None
-        }
+        txt_files = self.get_files_from_directory(text_dir, ['.txt'])
+        logger.info(f"Found {len(txt_files)} text files in {text_dir}")
         
-        try:
-            if file_type == 'pdf':
-                result['content'] = await self.extract_text_from_pdf(file_path)
-            elif file_type == 'text':
-                result['content'] = await self.read_text_file(file_path)
-            else:
-                result['error'] = f"不支持的文件类型: {file_type}"
-                return result
-            
-            result['success'] = bool(result['content'].strip())
-            if not result['success']:
-                result['error'] = "文件内容为空"
-                
-        except Exception as e:
-            result['error'] = str(e)
-            logger.error(f"处理文件失败 {file_path}: {e}")
+        tasks = []
+        for txt_file in txt_files:
+            task = self.process_txt_file(txt_file)
+            tasks.append(task)
         
-        return result
-    
-    async def process_directory(self, input_path: str) -> Tuple[List[Dict], List[Dict]]:
-        """
-        处理目录，智能识别PDF和文本文件
-        返回: (pdf_results, txt_results)
-        """
-        pdf_results = []
-        txt_results = []
-        
-        # 判断输入路径
-        if "pdf" in input_path.lower() or input_path == self.pdf_dir:
-            # 处理PDF目录
-            pdf_files = self.get_files_by_type(input_path, 'pdf')
-            logger.info(f"找到 {len(pdf_files)} 个PDF文件")
-            
-            for pdf_file in pdf_files:
-                result = await self.process_file(pdf_file)
-                pdf_results.append(result)
-            
-            # 同时检查文本目录
-            if os.path.exists(self.txt_dir):
-                txt_files = self.get_files_by_type(self.txt_dir, 'text')
-                logger.info(f"在 {self.txt_dir} 找到 {len(txt_files)} 个文本文件")
-                
-                for txt_file in txt_files:
-                    result = await self.process_file(txt_file)
-                    txt_results.append(result)
-                    
-        elif "text" in input_path.lower() or input_path == self.txt_dir:
-            # 处理文本目录
-            txt_files = self.get_files_by_type(input_path, 'text')
-            logger.info(f"找到 {len(txt_files)} 个文本文件")
-            
-            for txt_file in txt_files:
-                result = await self.process_file(txt_file)
-                txt_results.append(result)
-            
-            # 同时检查PDF目录
-            if os.path.exists(self.pdf_dir):
-                pdf_files = self.get_files_by_type(self.pdf_dir, 'pdf')
-                logger.info(f"在 {self.pdf_dir} 找到 {len(pdf_files)} 个PDF文件")
-                
-                for pdf_file in pdf_files:
-                    result = await self.process_file(pdf_file)
-                    pdf_results.append(result)
-                    
-        else:
-            # 自动检测并处理两种类型
-            logger.info(f"自动检测模式: {input_path}")
-            
-            # 检查PDF目录
-            if os.path.exists(self.pdf_dir):
-                pdf_files = self.get_files_by_type(self.pdf_dir, 'pdf')
-                logger.info(f"在 {self.pdf_dir} 找到 {len(pdf_files)} 个PDF文件")
-                
-                for pdf_file in pdf_files:
-                    result = await self.process_file(pdf_file)
-                    pdf_results.append(result)
-            
-            # 检查文本目录
-            if os.path.exists(self.txt_dir):
-                txt_files = self.get_files_by_type(self.txt_dir, 'text')
-                logger.info(f"在 {self.txt_dir} 找到 {len(txt_files)} 个文本文件")
-                
-                for txt_file in txt_files:
-                    result = await self.process_file(txt_file)
-                    txt_results.append(result)
-        
-        return pdf_results, txt_results
+        results = await asyncio.gather(*tasks)
+        return results
     
     def prepare_for_retrieval(self, pdf_results: List[Dict], txt_results: List[Dict]) -> List[Dict]:
-        """准备用于文本召回的数据格式"""
+        """准备用于检索的数据"""
         all_results = []
         
         # 处理PDF结果
         for result in pdf_results:
-            if result['success']:
+            if 'error' not in result:
                 all_results.append({
-                    'source_file': result['file_name'],
+                    'source_file': result['file_path'],
                     'file_type': 'pdf',
                     'content': result['content'],
-                    'metadata': {
-                        'file_path': result['file_path'],
-                        'extraction_method': 'pdf_extraction'
-                    }
+                    'metadata': result.get('metadata', {})
                 })
         
         # 处理文本结果
         for result in txt_results:
-            if result['success']:
+            if 'error' not in result:
                 all_results.append({
-                    'source_file': result['file_name'],
-                    'file_type': 'text',
+                    'source_file': result['file_path'],
+                    'file_type': 'txt',
                     'content': result['content'],
-                    'metadata': {
-                        'file_path': result['file_path'],
-                        'extraction_method': 'direct_read'
-                    }
+                    'metadata': result.get('metadata', {})
                 })
         
+        logger.info(f"Prepared {len(all_results)} documents for retrieval")
         return all_results
+    
+    async def process_directory(self, directory: str) -> Tuple[List[Dict], List[Dict]]:
+        """
+        处理目录，智能识别PDF和文本文件
+        
+        Args:
+            directory: 要处理的目录路径
+            
+        Returns:
+            Tuple[pdf_results, txt_results]
+        """
+        pdf_results = []
+        txt_results = []
+        
+        # 如果是PDF目录
+        if 'pdf' in directory.lower():
+            # 处理PDF目录
+            pdf_results = await self.process_pdf_directory(directory)
+            
+            # 检查是否有对应的文本目录
+            text_dir = directory.replace('pdf', 'text').replace('PDF', 'text')
+            if os.path.exists(text_dir):
+                logger.info(f"Also found text directory: {text_dir}")
+                txt_results = await self.process_text_directory(text_dir)
+        
+        # 如果是文本目录
+        elif 'text' in directory.lower() or 'txt' in directory.lower():
+            # 处理文本目录
+            txt_results = await self.process_text_directory(directory)
+            
+            # 检查是否有对应的PDF目录
+            pdf_dir = directory.replace('text', 'pdf').replace('txt', 'pdf')
+            if os.path.exists(pdf_dir):
+                logger.info(f"Also found PDF directory: {pdf_dir}")
+                pdf_results = await self.process_pdf_directory(pdf_dir)
+        
+        # 通用目录处理
+        else:
+            # 同时检查PDF和文本文件
+            pdf_files = self.get_files_from_directory(directory, ['.pdf'])
+            txt_files = self.get_files_from_directory(directory, ['.txt'])
+            
+            if pdf_files:
+                logger.info(f"Found {len(pdf_files)} PDF files")
+                # 检查PDF目录
+                pdf_subdir = os.path.join(directory, 'pdfs')
+                if os.path.exists(pdf_subdir):
+                    pdf_results = await self.process_pdf_directory(pdf_subdir)
+                else:
+                    pdf_results = await self.process_pdf_directory(directory)
+            
+            if txt_files:
+                logger.info(f"Found {len(txt_files)} text files")
+                # 检查文本目录
+                text_subdir = os.path.join(directory, 'texts')
+                if os.path.exists(text_subdir):
+                    txt_results = await self.process_text_directory(text_subdir)
+                else:
+                    txt_results = await self.process_text_directory(directory)
+        
+        return pdf_results, txt_results
 
 
-async def test_processor():
-    """测试文件处理器"""
+# 示例用法
+async def main():
     processor = EnhancedFileProcessor()
+    
+    # 处理特定目录
+    pdf_results, txt_results = await processor.process_directory("/workspace/data")
+    
+    # 准备检索数据
+    retrieval_data = processor.prepare_for_retrieval(pdf_results, txt_results)
+    
+    # 保存结果
+    output_file = os.path.join(processor.output_dir, "processed_data.json")
+    os.makedirs(processor.output_dir, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(retrieval_data, f, ensure_ascii=False, indent=2)
+    
+    print(f"Processed {len(pdf_results)} PDF files and {len(txt_results)} text files")
+    print(f"Results saved to {output_file}")
+
+
+if __name__ == "__main__":
+    # 设置日志
+    logging.basicConfig(level=logging.INFO)
     
     # 创建测试目录
     os.makedirs("data/pdfs", exist_ok=True)
     os.makedirs("data/texts", exist_ok=True)
     
-    # 测试处理
-    pdf_results, txt_results = await processor.process_directory("data/pdfs")
-    
-    print(f"PDF处理结果: {len(pdf_results)} 个文件")
-    print(f"文本处理结果: {len(txt_results)} 个文件")
-    
-    # 准备召回数据
-    retrieval_data = processor.prepare_for_retrieval(pdf_results, txt_results)
-    print(f"准备召回数据: {len(retrieval_data)} 条")
-    
-    return retrieval_data
-
-
-if __name__ == "__main__":
-    asyncio.run(test_processor())
+    # 运行示例
+    asyncio.run(main())

@@ -1,377 +1,132 @@
 {
-  "system_info": {
-    "name": "智能文本QA生成系统 - 整合版",
-    "version": "2.0.0",
-    "description": "功能完整的智能文本问答生成系统，整合了文本召回、数据处理、QA生成、质量控制、多模态处理和本地模型支持",
-    "last_updated": "2024-12-20",
-    "features": [
-      "文本召回与检索",
-      "多模态PDF处理", 
-      "智能QA生成",
-      "增强质量控制",
-      "本地模型支持",
-      "专业领域定制",
-      "数据改写增强"
-    ]
-  },
-  
   "api": {
+    "use_local_models": false,
     "ark_url": "http://0.0.0.0:8080/v1",
     "api_key": "ae37bba4-73be-4c22-b1a7-c6b1f5ec3a4b",
-    "timeout": 600,
-    "max_retries": 3,
-    "retry_delay": 1,
-    "use_local_models": true,
-    "local_model_priority": ["vllm", "transformers", "ollama"]
+    "default_backend": "ark"
   },
-  
   "models": {
-    "default_model": "/mnt/storage/models/Skywork/Skywork-R1V3-38B",
     "qa_generator_model": {
-      "type": "openai_compatible",
+      "name": "Skywork-R1V3-38B",
       "path": "/mnt/storage/models/Skywork/Skywork-R1V3-38B",
-      "temperature": 0.8,
-      "max_tokens": 4096,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "max_tokens": 2048
     },
     "quality_checker_model": {
+      "name": "Skywork-R1V3-38B",
       "path": "/mnt/storage/models/Skywork/Skywork-R1V3-38B",
-      "type": "api"
+      "temperature": 0.3,
+      "max_tokens": 512
     },
     "local_models": {
+      "default_backend": "ollama",
       "ollama": {
-        "enabled": false,
         "base_url": "http://localhost:11434",
-        "model_name": "qwen:7b",
-        "timeout": 300,
-        "models_available": ["llama2", "codellama", "mistral", "qwen", "deepseek-coder"]
+        "model": "qwen2.5:32b",
+        "temperature": 0.7,
+        "max_tokens": 2048,
+        "stream": false
       },
       "vllm": {
-        "enabled": true,
-        "base_url": "http://localhost:8000",
-        "model_name": "/mnt/storage/models/Skywork/Skywork-R1V3-38B",
-        "timeout": 300,
-        "gpu_memory_utilization": 0.9,
-        "max_model_len": 32768,
-        "tensor_parallel_size": 1,
-        "port": 8000
-      },
-      "transformers": {
-        "enabled": false,
-        "model_name": "/mnt/storage/models/Skywork/Skywork-R1V3-38B",
-        "device": "auto",
-        "torch_dtype": "auto",
-        "load_in_4bit": false,
-        "load_in_8bit": false,
-        "trust_remote_code": true
-      }
-    },
-    "multimodal_models": {
-      "vision_model": {
-        "type": "openai_compatible",
-        "path": "gpt-4-vision-preview",
-        "supports_images": true,
-        "max_image_size": "1024x1024"
+        "model_path": "/mnt/workspace/models/Qwen/QwQ-32B/",
+        "gpu_memory_utilization": 0.95,
+        "tensor_parallel_size": 4,
+        "max_model_len": 98304,
+        "temperature": 0.6,
+        "repetition_penalty": 1.1,
+        "min_p": 0,
+        "top_p": 0.95,
+        "top_k": 40,
+        "max_tokens": 4096,
+        "stop_token_ids": [151329, 151336, 151338]
       }
     }
   },
-  
+  "paths": {
+    "pdf_dir": "data/pdfs",
+    "text_dir": "data/texts",
+    "output_dir": "data/output",
+    "qa_output_dir": "data/qa_results",
+    "pdf_output_dir": "data/qa_results/pdfs",
+    "text_output_dir": "data/qa_results/texts",
+    "temp_dir": "data/temp"
+  },
   "processing": {
-    "batch_size": 100,
-    "max_concurrent": 20,
-    "pool_size": 100,
-    "quality_threshold": 0.7,
-    "selected_task_number": 1000,
-    "parallel_batch_size": 100,
-    "memory_limit": "16GB",
-    "enable_caching": true,
+    "batch_size": 32,
+    "max_concurrent_tasks": 100,
     "chunk_size": 2000,
     "chunk_overlap": 200,
-    "max_tasks": 1000
+    "max_retries": 3,
+    "retry_delay": 1.0,
+    "enable_text_filtering": true,
+    "filter_references": true,
+    "filter_acknowledgments": true,
+    "min_chinese_ratio": 0.01
   },
-  
-  "data_retrieval": {
-    "pdf_processing": {
-      "max_pages_per_document": 100,
-      "image_extraction": true,
-      "text_extraction": true,
-      "extract_tables": true,
-      "dpi": 200,
-      "image_format": "png"
-    },
-    "retrieval_indices": {
-      "default": 43,
-      "semiconductor": 43,
-      "optics": 43,
-      "materials": 43
-    },
-    "filters": {
-      "min_text_length": 50,
-      "max_text_length": 10000,
-      "skip_empty_pages": true
-    }
-  },
-  
-  "data_cleaning": {
-    "regex_patterns": {
-      "json_extraction": "```json\\s*(\\{[\\s\\S]*?\\})\\s*```",
-      "image_path_normalization": true,
-      "remove_duplicates": true
-    },
-    "validation": {
-      "required_fields": ["imageDescription", "analysisResults", "relatedKnowledge"],
-      "max_field_length": 5000
-    }
-  },
-  
-  "question_generation": {
-    "question_types": ["factual", "comparison", "reasoning", "open_ended"],
-    "question_type_ratios": {
-      "factual": 0.15,
-      "comparison": 0.15,
-      "reasoning": 0.50,
-      "open_ended": 0.20
-    },
-    "prompt_indexes": {
-      "knowledge_extraction": 9,
-      "factual": 43,
-      "comparison": 44,
-      "reasoning": 45,
-      "open_ended": 46,
-      "comprehensive": 343,
-      "multimodal": [343, 3431, 3432],
-      "professional": [34, 35, 36, 37, 38, 39, 40]
-    },
-    "generation_params": {
-      "max_questions_per_image": 3,
-      "answer_format": "multiple_choice",
-      "min_choices": 3,
-      "max_choices": 4
-    },
-    "quality_filters": {
-      "min_question_length": 20,
-      "min_answer_length": 10,
-      "require_reasoning": true,
-      "check_image_dependency": true
-    }
-  },
-  
   "quality_control": {
-    "basic_quality_check": {
-      "enabled": true,
-      "check_indexes": [40, 37, 38, 39],
-      "check_times": 9,
-      "pass_threshold": 0.6
-    },
+    "enabled": true,
+    "min_quality_score": 0.7,
+    "check_indexes": [40, 37, 38],
+    "check_times": 9,
     "enhanced_quality_check": {
       "enabled": true,
-      "parallel_core": 10,
-      "activate_stream": false,
+      "use_detailed_scoring": true,
       "quality_threshold": 0.7,
-      "verification_method": "dual_stage",
-      "use_multiple_models": false,
-      "quality_models": ["ollama", "api"],
-      "dimensions": [
-        "reasoning_validity",
-        "question_clarity", 
-        "answer_correctness",
-        "image_dependency",
-        "domain_relevance"
-      ]
+      "require_reasoning_score": 1.0
     },
-    "auto_improvement": {
-      "enabled": true,
-      "max_iterations": 3,
-      "improvement_threshold": 0.1
+    "scoring_criteria": {
+      "completeness": {
+        "weight": 0.25,
+        "enabled": true
+      },
+      "complexity": {
+        "weight": 0.25,
+        "enabled": true
+      },
+      "accuracy": {
+        "weight": 0.25,
+        "enabled": true
+      },
+      "reasoning": {
+        "weight": 0.25,
+        "enabled": true
+      }
     }
   },
-  
-  "professional_domains": {
-    "enabled": true,
-    "default_domain": "semiconductor",
-    "available_domains": [
-      "semiconductor",
-      "optics", 
-      "materials",
-      "physics",
-      "chemistry",
-      "electronics"
-    ],
+  "prompts": {
+    "system_prompt": "你是一个乐于助人的半导体显示技术领域的专家。",
+    "use_thinking_template": false,
+    "include_background": true,
+    "max_questions_per_text": 3
+  },
+  "domains": {
+    "supported": ["semiconductor", "optics", "materials", "physics", "chemistry"],
+    "default": "semiconductor",
     "domain_specific_prompts": {
-      "semiconductor": [343, 3431, 3432],
-      "optics": [343, 3431, 3432],
-      "materials": [343, 3431, 3432]
-    },
-    "semiconductor": {
-      "keywords": ["IGZO", "TFT", "OLED", "半导体", "晶体管", "能带", "载流子"],
-      "quality_criteria": "high",
-      "specific_checks": ["technical_accuracy", "formula_validity"],
-      "context_requirements": {
-        "include_definitions": true,
-        "include_formulas": true,
-        "include_units": true
-      }
-    },
-    "optics": {
-      "keywords": ["光谱", "光学", "激光", "折射", "反射", "衍射", "干涉"],
-      "quality_criteria": "high",
-      "specific_checks": ["wavelength_accuracy", "optical_principles"],
-      "context_requirements": {
-        "include_wavelengths": true,
-        "include_optical_laws": true,
-        "include_applications": true
-      }
-    },
-    "materials": {
-      "keywords": ["材料", "晶体", "聚合物", "复合材料", "表面", "界面"],
-      "quality_criteria": "high",
-      "specific_checks": ["material_properties", "structure_analysis"],
-      "context_requirements": {
-        "include_properties": true,
-        "include_structure": true,
-        "include_applications": true
+      "semiconductor": {
+        "keywords": ["IGZO", "TFT", "OLED", "晶体管", "能带", "载流子"],
+        "focus": "半导体器件和显示技术"
+      },
+      "optics": {
+        "keywords": ["光学", "激光", "光谱", "折射", "衍射", "干涉"],
+        "focus": "光学原理和应用"
+      },
+      "materials": {
+        "keywords": ["材料", "晶体", "薄膜", "纳米", "复合材料", "表征"],
+        "focus": "材料科学和工程"
       }
     }
   },
-  
-  "multimodal": {
-    "enabled": true,
-    "pdf_processing": {
-      "extract_images": true,
-      "extract_text": true,
-      "dpi": 200,
-      "image_format": "png"
-    },
-    "image_processing": {
-      "max_size": "1024x1024",
-      "formats": ["png", "jpg", "jpeg", "webp"],
-      "encode_base64": true
-    }
-  },
-  
-  "rewriting": {
-    "enabled": true,
-    "rewrite_ratio": 0.3,
-    "quality_improvement": true,
-    "professional_enhancement": true,
-    "template_types": ["basic", "advanced", "professional"],
-    "concurrency": 5
-  },
-  
-  "output": {
-    "formats": ["json", "csv"],
-    "include_statistics": true,
-    "include_source_mapping": true,
-    "separate_by_domain": true,
-    "include_images": true,
-    "qa_pair": {
-      "required_fields": ["question", "answer", "reasoning"],
-      "optional_fields": ["choices", "context", "lecture", "image_path"],
-      "metadata_fields": ["domain", "difficulty", "question_type", "quality_score"]
-    },
-    "batch_output": {
-      "format": "json",
-      "encoding": "utf-8",
-      "indent": 4,
-      "ensure_ascii": false
-    },
-    "reports": {
-      "generate_statistics": true,
-      "include_quality_metrics": true,
-      "save_intermediate_results": true
-    }
-  },
-  
-  "file_paths": {
-    "input": {
-      "base_dir": "data/input",
-      "pdf_dir": "data/pdfs",
-      "text_dir": "data/texts"
-    },
-    "output": {
-      "base_dir": "data/output",
-      "retrieved_dir": "data/retrieved",
-      "cleaned_dir": "data/cleaned", 
-      "qa_dir": "data/qa_results",
-      "quality_dir": "data/quality_checked",
-      "final_dir": "data/final_output"
-    },
-    "temp": {
-      "base_dir": "temp",
-      "cache_dir": "temp/cache",
-      "logs_dir": "logs"
-    }
-  },
-  
   "logging": {
     "level": "INFO",
-    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    "file": "logs/text_qa_generation.log",
-    "max_file_size": "10MB",
-    "backup_count": 5,
-    "handlers": {
-      "file": {
-        "enabled": true,
-        "filename": "logs/pipeline.log",
-        "max_size": "10MB",
-        "backup_count": 5
-      },
-      "console": {
-        "enabled": true,
-        "level": "INFO"
-      }
-    }
+    "file": "logs/processing.log",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   },
-  
   "performance": {
-    "multiprocessing": {
-      "enabled": true,
-      "max_workers": 8,
-      "chunk_size": 10
-    },
-    "memory_optimization": {
-      "clear_cache_interval": 100,
-      "max_cache_size": "1GB",
-      "gc_threshold": 1000
-    },
-    "monitoring": {
-      "track_memory_usage": true,
-      "track_processing_time": true,
-      "save_performance_logs": true
-    }
-  },
-  
-  "error_handling": {
-    "max_retries": 3,
-    "retry_delay": 2,
-    "skip_on_error": false,
-    "save_error_logs": true,
-    "continue_on_partial_failure": true
-  },
-  
-  "validation": {
-    "input_validation": {
-      "check_file_existence": true,
-      "check_file_format": true,
-      "check_file_size": true
-    },
-    "output_validation": {
-      "validate_json_format": true,
-      "validate_required_fields": true,
-      "validate_data_types": true
-    }
-  },
-  
-  "experimental": {
-    "features": {
-      "auto_prompt_selection": false,
-      "dynamic_quality_threshold": false,
-      "adaptive_batch_size": false
-    },
-    "debug": {
-      "save_intermediate_prompts": false,
-      "detailed_error_traces": false,
-      "performance_profiling": false
-    }
+    "enable_caching": true,
+    "cache_dir": "cache",
+    "max_cache_size_gb": 10,
+    "enable_profiling": false,
+    "profile_output": "profiles"
   }
 }

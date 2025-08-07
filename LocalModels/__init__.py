@@ -1,32 +1,33 @@
 """
-Local Models Module
+本地模型支持包
 
-This module provides support for local large language models.
-It includes functionality for:
-- Ollama model integration
+支持的模型类型：
+- Ollama models
 - vLLM model serving
-- Transformers local model loading
-- Custom model API interfaces
-- Model performance optimization
+- 其他本地模型接口
 """
 
 from .ollama_client import OllamaClient, create_ollama_client
-from .vllm_client import VLLMClient, create_vllm_client
-from .transformers_client import TransformersClient, create_transformers_client
-from .local_model_manager import LocalModelManager, get_available_models
-from .model_utils import ModelUtils, estimate_model_size
+
+# 尝试导入vLLM客户端
+try:
+    from .vllm_client import VLLMClient, create_vllm_client
+    VLLM_SUPPORT = True
+except ImportError:
+    VLLM_SUPPORT = False
+    VLLMClient = None
+    create_vllm_client = None
 
 __all__ = [
     'OllamaClient',
     'create_ollama_client',
-    'VLLMClient', 
-    'create_vllm_client',
-    'TransformersClient',
-    'create_transformers_client',
-    'LocalModelManager',
-    'get_available_models',
-    'ModelUtils',
-    'estimate_model_size'
 ]
 
-__version__ = "1.0.0"
+# 如果vLLM可用，添加到导出列表
+if VLLM_SUPPORT:
+    __all__.extend([
+        'VLLMClient',
+        'create_vllm_client',
+    ])
+
+__version__ = '0.1.0'
