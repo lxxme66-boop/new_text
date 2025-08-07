@@ -102,42 +102,49 @@ pip install vllm
 
 ## 使用方法
 
-### 1. 简单使用 - 处理文本文件
+### 1. 推荐方式 - 运行完整的半导体QA生成流程
 
 ```bash
+python run_semiconductor_qa.py --input-dir data/texts --output-dir data/qa_results
+```
+
+这将按照正确的流程依次执行：
+1. text_processor.py - 文本预处理
+2. semiconductor_qa_generator.py - 核心QA生成
+3. argument_data.py - 数据增强与重写
+
+### 2. 旧版方式 - 使用增强版QA生成（当前shell脚本使用的方式）
+
+```bash
+# 运行完整流程
+bash run_full_pipeline.sh
+
+# 或直接运行Python脚本
+python text_qa_generation_enhanced.py --file_path data/output/total_response.json
+```
+
+### 3. 分步执行
+
+```bash
+# 步骤1: 文本预处理
 python text_processor.py --input data/texts --output data/output
-```
 
-### 2. 完整流程 - 使用核心QA生成器
-
-```bash
+# 步骤2: QA生成
 python semiconductor_qa_generator.py
+
+# 步骤3: 数据增强
+python argument_data.py --input data/qa_results/qa_generated.json
 ```
 
-默认参数：
-- 模型：QwQ-32B
-- 批处理大小：32
-- GPU设备：4,5,6,7
-
-### 3. 高级使用 - 自定义参数
-
-```python
-from semiconductor_qa_generator import run_semiconductor_qa_generation
-
-# 自定义参数运行
-results = await run_semiconductor_qa_generation(
-    raw_folders=["/path/to/input/"],
-    save_paths=["/path/to/output.json"],
-    model_name="qwq_32",
-    batch_size=32,
-    gpu_devices="0,1,2,3"
-)
-```
-
-### 4. 运行完整管道
+### 4. 自定义参数运行
 
 ```bash
-python run_pipeline.py --config config.json
+python run_semiconductor_qa.py \
+    --input-dir /path/to/texts \
+    --output-dir /path/to/output \
+    --model qwq_32 \
+    --batch-size 32 \
+    --gpu-devices "0,1,2,3"
 ```
 
 ## 配置说明

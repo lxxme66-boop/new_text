@@ -8,9 +8,50 @@ import os
 import re
 from Doubao.prompts_conf import system_prompt, user_prompts
 import asyncio
+import json
+from typing import List, Dict, Any
+
 ark_url = "https://ark.cn-beijing.volces.com/api/v3"
 api_key = "ecb26efc-05e7-4d58-8d40-0dca61ccb4e9" # my own api
 model = "doubao-1.5-thinking-pro-m-250428"
+
+
+class ArgumentDataProcessor:
+    """数据增强处理器类"""
+    
+    def __init__(self, api_key: str = api_key, model: str = model):
+        self.api_key = api_key
+        self.model = model
+        self.ark_url = ark_url
+    
+    async def enhance_qa_data(self, qa_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """增强QA数据"""
+        enhanced_data = []
+        
+        # 处理每个QA对
+        for idx, qa_item in enumerate(qa_data):
+            try:
+                # 使用现有的modify_sft_response函数进行增强
+                enhanced_item = await self._enhance_single_qa(qa_item, idx)
+                enhanced_data.append(enhanced_item)
+            except Exception as e:
+                print(f"Error enhancing QA item {idx}: {e}")
+                enhanced_data.append(qa_item)  # 如果增强失败，保留原始数据
+        
+        return enhanced_data
+    
+    async def _enhance_single_qa(self, qa_item: Dict[str, Any], index: int) -> Dict[str, Any]:
+        """增强单个QA项"""
+        # 选择合适的prompt模板
+        prompt_template = user_prompts['rewrite_prompt']
+        
+        # 调用现有的modify_sft_response函数
+        enhanced_response = await modify_sft_response([qa_item], 0, prompt_template)
+        
+        if enhanced_response:
+            return enhanced_response
+        else:
+            return qa_item
 async def modify_sft_response(responses, index,prompt_template):
 
     response = responses[index]
