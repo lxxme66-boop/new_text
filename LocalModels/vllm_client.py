@@ -1,22 +1,34 @@
 # -*- coding: utf-8 -*-
 """
-vLLM客户端支持
-提供vLLM模型服务的接口
+VLLM客户端实现
+支持本地VLLM服务的调用
 """
 import os
-import asyncio
 import logging
-from typing import Dict, List, Optional, Any, Union
-import json
+from typing import List, Union, Optional, Dict, Any, AsyncGenerator
+import asyncio
 import aiohttp
+import json
+from tqdm import tqdm
 
-# 尝试导入vLLM
+# 尝试导入vllm
 try:
     from vllm import LLM, SamplingParams
     VLLM_AVAILABLE = True
 except ImportError:
+    logger.warning("vLLM not installed. Install with: pip install vllm")
     VLLM_AVAILABLE = False
-    print("Warning: vLLM not installed. Install with: pip install vllm")
+    
+    # 定义mock类以避免导入错误
+    class LLM:
+        """Mock LLM class"""
+        def __init__(self, **kwargs):
+            raise ImportError("vLLM is not installed. Please install it with: pip install vllm")
+    
+    class SamplingParams:
+        """Mock SamplingParams class"""
+        def __init__(self, **kwargs):
+            raise ImportError("vLLM is not installed. Please install it with: pip install vllm")
 
 # 尝试导入transformers
 try:
